@@ -1,0 +1,6 @@
+{
+  "mongoURI": "mongodb+srv://ashutosh4336:ashutosh123@dev001.ramof.mongodb.net/devconnector?retryWrites=true&w=majority",
+  "JWT_SECRET": "valuecoders",
+  "JWT_EXPIRE": "10d",
+  "NODE_ENV": "development"
+}
