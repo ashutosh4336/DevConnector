@@ -45,6 +45,11 @@ router.post(
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
+
+      const user = await User.findById(req.user);
+      if (!user) {
+        return res.status(400).json({ sucess: false, msg: 'User Not Found' });
+      }
       const {
         company,
         website,
@@ -131,15 +136,230 @@ router.get('/', async (req, res) => {
 
 router.get('/user/:id', async (req, res) => {
   try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(400).json({ sucess: false, msg: 'User Not Found' });
+    }
     const profile = await Profile.findOne({
       user: req.params.id,
     }).populate('user', ['name', 'avatar']);
 
     if (!profile) {
-      return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+      return res
+        .status(404)
+        .json({ sucess: false, msg: 'There is no Profile fo the user' });
     }
 
     return res.json({ sucess: true, data: profile });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+    }
+    return res
+      .status(500)
+      .json({ sucess: false, data: 'Something went wrong' });
+  }
+});
+
+// @route       DELETE api/v1/profile/user/:id
+// @desc        delete Single user, profile and Posts
+// @access      Public
+
+router.delete('/user/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+    }
+
+    await Profile.findOneAndRemove({
+      user: req.params.id,
+    });
+    await User.findByIdAndRemove(req.params.id);
+
+    // TODO: delete Post releated to user
+
+    return res.json({ sucess: true, msg: 'User Removed' });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+    }
+    return res
+      .status(500)
+      .json({ sucess: false, data: 'Something went wrong' });
+  }
+});
+
+// @route       PUT api/v1/profile/experience
+// @desc        Update Profile with Experience
+// @access      Private
+router.put(
+  '/experience',
+  [
+    auth,
+    [
+      check('title', 'Title is Required').not().isEmpty(),
+      check('company', 'Company is Required').not().isEmpty(),
+      check('from', 'From Date is Required').not().isEmpty(),
+    ],
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const {
+        title,
+        company,
+        location,
+        from,
+        to,
+        current,
+        description,
+      } = req.body;
+
+      const newExp = {
+        title,
+        company,
+        location,
+        from,
+        to,
+        current,
+        description,
+      };
+      console.log(newExp);
+
+      const profile = await Profile.findOne({ user: req.user });
+
+      if (!profile) {
+        return res.status(400).json({ sucess: false, msg: 'User Not Found' });
+      }
+      // console.log('profile ==>', profile);
+      profile.experience.unshift(newExp);
+
+      await profile.save();
+
+      return res.status(200).json({ sucess: true, data: profile });
+    } catch (err) {
+      console.error(err.message);
+      if (err.kind === 'ObjectId') {
+        return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+      }
+      return res
+        .status(500)
+        .json({ sucess: false, data: 'Something went wrong' });
+    }
+  }
+);
+
+// @route       DELETE api/v1/profile/experience/:id
+// @desc        Delete Experience
+// @access      Private
+router.delete('/experience/:id', auth, async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ user: req.user });
+    // GET REmove index
+    const removeIndex = profile.experience
+      .map((el) => el.id)
+      .indexOf(req.params.id);
+
+    // console.log(removeIndex);
+    profile.experience.splice(removeIndex, 1);
+
+    await profile.save();
+
+    return res.status(200).json({ sucess: true, data: profile });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+    }
+    return res
+      .status(500)
+      .json({ sucess: false, data: 'Something went wrong' });
+  }
+});
+
+// @route       PUT api/v1/profile/education
+// @desc        Update Profile with Education
+// @access      Private
+router.put(
+  '/education',
+  [
+    auth,
+    [
+      check('school', 'School is Required').not().isEmpty(),
+      check('degree', 'Degree is Required').not().isEmpty(),
+      check('from', 'From Date is Required').not().isEmpty(),
+      check('fieldofstudy', 'Fieldofstudy Date is Required').not().isEmpty(),
+    ],
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { school, degree, from, to, fieldofstudy, current } = req.body;
+
+      const newEdu = {
+        school,
+        degree,
+        from,
+        fieldofstudy,
+        to,
+        current,
+      };
+      console.log(newEdu);
+
+      const profile = await Profile.findOne({ user: req.user });
+
+      if (!profile) {
+        return res.status(400).json({ sucess: false, msg: 'User Not Found' });
+      }
+      // console.log('profile ==>', profile);
+      profile.education.unshift(newEdu);
+
+      await profile.save();
+
+      return res.status(200).json({ sucess: true, data: profile });
+    } catch (err) {
+      console.error(err.message);
+      if (err.kind === 'ObjectId') {
+        return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+      }
+      return res
+        .status(500)
+        .json({ sucess: false, data: 'Something went wrong' });
+    }
+  }
+);
+
+// @route       DELETE api/v1/profile/experience/:id
+// @desc        Delete Experience
+// @access      Private
+router.delete('/education/:id', auth, async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ user: req.user });
+    // GET REmove index
+    const removeIndex = profile.education
+      .map((el) => el.id)
+      .indexOf(req.params.id);
+
+    // console.log(removeIndex);
+    profile.education.splice(removeIndex, 1);
+
+    // console.log(profile);
+
+    await profile.save();
+
+    return res.status(200).json({ sucess: true, data: profile });
   } catch (err) {
     console.error(err.message);
     if (err.kind === 'ObjectId') {

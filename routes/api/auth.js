@@ -7,6 +7,7 @@ const gravatar = require('gravatar');
 
 const auth = require('../../middleware/auth');
 const User = require('../../models/User');
+const Profile = require('../../models/Profile');
 
 // @route       GET api/v1/auth
 // @desc        Get LoggedIn User Deatils
@@ -17,7 +18,10 @@ router.get('/', auth, async (req, res) => {
     if (!user) {
       return res.status(400).json({ success: false, data: 'User not Found' });
     }
-    return res.status(200).json({ success: true, user });
+
+    const profile = await Profile.findOne({ user: req.user });
+
+    return res.status(200).json({ success: true, user, profile });
   } catch (err) {
     return res
       .status(500)
