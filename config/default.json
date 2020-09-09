@@ -2,5 +2,7 @@
   "mongoURI": "mongodb+srv://ashutosh4336:ashutosh123@dev001.ramof.mongodb.net/devconnector?retryWrites=true&w=majority",
   "JWT_SECRET": "valuecoders",
   "JWT_EXPIRE": "10d",
-  "NODE_ENV": "development"
+  "NODE_ENV": "development",
+  "githubClientId": "21ec6f9c8b0a32e711ad",
+  "githubClientSecret": "0d88a044f4fcef295e40374ad4a58269c0532f47"
 }
