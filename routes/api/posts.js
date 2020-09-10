@@ -193,4 +193,99 @@ router.put('/unlike/:id', auth, async (req, res) => {
   }
 });
 
+// @route       POST api/v1/posts/comment/:id
+// @desc        Comment on a Post
+// @access      Private
+router.post(
+  '/comment/:id',
+  [auth, [check('text', 'Comment content is Required').not().isEmpty()]],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const user = await User.findById(req.user);
+
+      const post = await Post.findById(req.params.id);
+
+      if (!post) {
+        return res.status(404).json({ success: false, data: 'No Post Found' });
+      }
+
+      const newComment = {
+        text: req.body.text,
+        name: user.name,
+        avatar: user.avatar,
+        user: req.user,
+      };
+
+      post.comments.unshift(newComment);
+
+      await post.save();
+
+      return res.status(201).json({ success: true, data: post });
+    } catch (err) {
+      console.error(err.message);
+      if (err.kind === 'ObjectId') {
+        return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+      }
+      return res
+        .status(500)
+        .json({ sucess: false, data: 'Something went wrong' });
+    }
+  }
+);
+
+// @route       Delete api/v1/posts/comment/:id/:comment_id
+// @desc        Delete a Comment from Post
+// @access      Private
+router.delete('/comment/:id/:comment_id', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user);
+
+    const post = await Post.findById(req.params.id);
+
+    const commentsOfPost = post.comments.find(
+      (el) => el.id === req.params.comment_id
+    );
+
+    if (!commentsOfPost)
+      return res
+        .status(404)
+        .json({ success: false, data: "Commnet Doesn't Exist" });
+
+    // checkuser
+    if (commentsOfPost.user.toString() !== req.user)
+      return res
+        .status(404)
+        .json({ success: false, data: 'User is not Authorized' });
+
+    if (!post) {
+      return res.status(404).json({ success: false, data: 'No Post Found' });
+    }
+
+    // Remove Index
+    const removeIndex = post.comments
+      .map((el) => el.user.toString())
+      .indexOf(req.user);
+
+    // console.log(removeIndex);
+
+    post.comments.splice(removeIndex, 1);
+    await post.save();
+
+    return res.status(201).json({ success: true, data: post });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ sucess: false, msg: 'User Not Found' });
+    }
+    return res
+      .status(500)
+      .json({ sucess: false, data: 'Something went wrong' });
+  }
+});
+
 module.exports = router;
